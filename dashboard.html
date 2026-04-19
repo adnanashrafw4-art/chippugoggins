@@ -7,537 +7,167 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Mono:wght@400;500&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0c0c0f;
-    --surface: #13131a;
-    --surface2: #1a1a24;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #e8e6de;
-    --text2: #8a8880;
-    --text3: #504e4a;
-    --gold: #c9a84c;
-    --gold2: #e8c97a;
-    --teal: #2dd4bf;
-    --red: #e05252;
-    --green: #4ade80;
-    --purple: #a78bfa;
-    --amber: #fb923c;
+    --bg: #0c0c0f; --surface: #13131a; --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    --text: #e8e6de; --text2: #8a8880; --text3: #504e4a;
+    --gold: #c9a84c; --gold2: #e8c97a; --teal: #2dd4bf;
+    --red: #e05252; --green: #4ade80; --purple: #a78bfa; --amber: #fb923c;
     --font-serif: 'Cormorant Garamond', serif;
     --font-mono: 'DM Mono', monospace;
     --font-arabic: 'Tajawal', sans-serif;
   }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-mono); font-size:13px; min-height:100vh; line-height:1.6; }
+  .shell { display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .sidebar { background:var(--surface); border-right:1px solid var(--border); padding:32px 0; position:sticky; top:0; height:100vh; overflow-y:auto; display:flex; flex-direction:column; }
+  .sidebar-logo { padding:0 24px 32px; border-bottom:1px solid var(--border); margin-bottom:24px; }
+  .sidebar-logo .arabic { font-family:var(--font-arabic); font-size:18px; color:var(--gold); display:block; margin-bottom:4px; }
+  .sidebar-logo .sub { font-size:10px; color:var(--text3); letter-spacing:0.12em; text-transform:uppercase; }
+  .nav-section { padding:0 16px; margin-bottom:8px; }
+  .nav-label { font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--text3); padding:0 8px; margin-bottom:6px; display:block; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; cursor:pointer; color:var(--text2); font-size:12px; transition:all 0.15s; border:none; background:none; width:100%; text-align:left; }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { background:rgba(201,168,76,0.1); color:var(--gold); }
+  .nav-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .sidebar-score { margin-top:auto; padding:20px 24px; border-top:1px solid var(--border); }
+  .score-label { font-size:10px; color:var(--text3); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; }
+  .score-big { font-family:var(--font-serif); font-size:48px; font-weight:600; color:var(--gold); line-height:1; }
+  .score-max { font-size:11px; color:var(--text3); }
+  .score-week { font-size:10px; color:var(--text2); margin-top:4px; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    min-height: 100vh;
-    line-height: 1.6;
-  }
+  .main { padding:40px 48px; max-width:900px; }
+  .page { display:none; }
+  .page.active { display:block; }
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+  .page-title { font-family:var(--font-serif); font-size:32px; font-weight:500; color:var(--text); line-height:1.2; }
+  .page-subtitle { font-size:11px; color:var(--text3); margin-top:6px; letter-spacing:0.05em; }
+  .week-badge { background:var(--surface2); border:1px solid var(--border2); border-radius:4px; padding:6px 12px; font-size:11px; color:var(--text2); text-align:right; }
+  .week-badge strong { display:block; color:var(--gold); font-size:14px; }
 
-  /* ── LAYOUT ── */
-  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  .pillar-block { margin-bottom:40px; }
+  .pillar-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .pillar-name { font-family:var(--font-serif); font-size:20px; font-weight:500; }
+  .pillar-pts { font-size:10px; color:var(--text3); letter-spacing:0.1em; text-transform:uppercase; }
+  .pillar-score-display { margin-left:auto; font-size:13px; color:var(--text2); }
 
-  /* ── SIDEBAR ── */
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 32px 0;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-  }
+  .goal-row { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin-bottom:8px; transition:border-color 0.2s; }
+  .goal-row:hover { border-color:var(--border2); }
+  .goal-row.monthly-goal { border-left:3px solid var(--amber); }
+  .goal-row.monthly-locked { opacity:0.35; pointer-events:none; }
+  .goal-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .goal-label { font-size:13px; color:var(--text); line-height:1.4; }
+  .goal-target { font-size:11px; color:var(--text3); margin-top:2px; }
+  .goal-pts-badge { font-size:10px; color:var(--text3); background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:2px 8px; white-space:nowrap; flex-shrink:0; margin-left:12px; }
+  .monthly-badge { font-size:9px; background:rgba(251,146,60,0.15); color:var(--amber); border:1px solid rgba(251,146,60,0.3); border-radius:4px; padding:2px 7px; margin-left:8px; vertical-align:middle; }
+  .locked-msg { font-size:11px; color:var(--text3); font-style:italic; }
 
-  .sidebar-logo {
-    padding: 0 24px 32px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 24px;
-  }
-  .sidebar-logo .arabic {
-    font-family: var(--font-arabic);
-    font-size: 18px;
-    color: var(--gold);
-    display: block;
-    margin-bottom: 4px;
-  }
-  .sidebar-logo .sub {
-    font-size: 10px;
-    color: var(--text3);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
+  .checkbox-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .cb-wrap { position:relative; }
+  .cb-wrap input[type="checkbox"] { display:none; }
+  .cb-wrap label { display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid var(--border2); border-radius:4px; cursor:pointer; font-size:10px; color:var(--text3); transition:all 0.15s; user-select:none; }
+  .cb-wrap input:checked + label { background:rgba(201,168,76,0.15); border-color:var(--gold); color:var(--gold2); }
+  .cb-day-label { display:block; font-size:9px; color:var(--text3); text-align:center; margin-top:3px; }
 
-  .nav-section {
-    padding: 0 16px;
-    margin-bottom: 8px;
-  }
-  .nav-label {
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--text3);
-    padding: 0 8px;
-    margin-bottom: 6px;
-    display: block;
-  }
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--text2);
-    font-size: 12px;
-    transition: all 0.15s;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-  }
-  .nav-item:hover { background: var(--surface2); color: var(--text); }
-  .nav-item.active { background: rgba(201,168,76,0.1); color: var(--gold); }
-  .nav-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .number-input-wrap { display:flex; align-items:center; gap:10px; }
+  .num-btn { width:32px; height:32px; background:var(--surface2); border:1px solid var(--border2); border-radius:4px; color:var(--text); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+  .num-btn:hover { background:var(--border2); }
+  .num-display { font-size:20px; font-family:var(--font-serif); color:var(--gold); min-width:40px; text-align:center; }
+  .num-unit { font-size:11px; color:var(--text3); }
 
-  .sidebar-score {
-    margin-top: auto;
-    padding: 20px 24px;
-    border-top: 1px solid var(--border);
-  }
-  .score-label { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
-  .score-big { font-family: var(--font-serif); font-size: 48px; font-weight: 600; color: var(--gold); line-height: 1; }
-  .score-max { font-size: 11px; color: var(--text3); }
-  .score-week { font-size: 10px; color: var(--text2); margin-top: 4px; }
+  .goal-progress { margin-top:10px; height:2px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .goal-progress-fill { height:100%; background:var(--gold); border-radius:2px; transition:width 0.3s ease; }
 
-  /* ── MAIN ── */
-  .main { padding: 40px 48px; max-width: 900px; }
+  .draft-banner { background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.2); border-radius:6px; padding:10px 16px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--text2); }
+  .draft-time { color:var(--gold); font-size:11px; }
+  .month-end-banner { background:rgba(251,146,60,0.08); border:1px solid rgba(251,146,60,0.25); border-radius:6px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:var(--amber); }
+  .month-end-banner strong { display:block; margin-bottom:4px; font-size:13px; }
 
-  .page { display: none; }
-  .page.active { display: block; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:6px; font-family:var(--font-mono); font-size:12px; cursor:pointer; transition:all 0.15s; border:1px solid var(--border2); background:var(--surface2); color:var(--text); }
+  .btn:hover { border-color:var(--gold); color:var(--gold); }
+  .btn-primary { background:var(--gold); color:#0c0c0f; border-color:var(--gold); font-weight:500; }
+  .btn-primary:hover { background:var(--gold2); border-color:var(--gold2); color:#0c0c0f; }
+  .btn-draft { background:rgba(201,168,76,0.1); color:var(--gold); border-color:rgba(201,168,76,0.3); }
+  .btn-group { display:flex; gap:10px; margin-top:32px; flex-wrap:wrap; }
 
-  /* ── PAGE HEADER ── */
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 40px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-  }
-  .page-title { font-family: var(--font-serif); font-size: 32px; font-weight: 500; color: var(--text); line-height: 1.2; }
-  .page-subtitle { font-size: 11px; color: var(--text3); margin-top: 6px; letter-spacing: 0.05em; }
-  .week-badge {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 11px;
-    color: var(--text2);
-    text-align: right;
-  }
-  .week-badge strong { display: block; color: var(--gold); font-size: 14px; }
+  .report-box { background:var(--surface); border:1px solid var(--border2); border-radius:8px; padding:24px; margin-top:32px; display:none; }
+  .report-box.visible { display:block; }
+  .report-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .report-title { font-family:var(--font-serif); font-size:18px; color:var(--gold); }
+  .report-text { font-size:12px; color:var(--text2); line-height:1.8; white-space:pre-wrap; font-family:var(--font-mono); border-top:1px solid var(--border); padding-top:16px; max-height:500px; overflow-y:auto; }
+  .copy-success { color:var(--teal); font-size:11px; display:none; }
+  .copy-success.show { display:inline; }
 
-  /* ── PILLAR BLOCK ── */
-  .pillar-block { margin-bottom: 40px; }
-  .pillar-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .pillar-name {
-    font-family: var(--font-serif);
-    font-size: 20px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .pillar-pts {
-    font-size: 10px;
-    color: var(--text3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-  .pillar-score-display {
-    margin-left: auto;
-    font-size: 13px;
-    color: var(--text2);
-  }
-  .pillar-score-display span { color: var(--gold); font-weight: 500; }
+  .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:32px; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; }
+  .stat-label { font-size:10px; color:var(--text3); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+  .stat-value { font-family:var(--font-serif); font-size:28px; font-weight:500; color:var(--text); }
+  .stat-sub { font-size:11px; color:var(--text3); margin-top:4px; }
+  .stat-card.gold .stat-value { color:var(--gold); }
 
-  /* ── GOAL ROW ── */
-  .goal-row {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px 20px;
-    margin-bottom: 8px;
-    transition: border-color 0.2s;
-  }
-  .goal-row:hover { border-color: var(--border2); }
-  .goal-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-  }
-  .goal-label { font-size: 13px; color: var(--text); line-height: 1.4; }
-  .goal-target { font-size: 11px; color: var(--text3); margin-top: 2px; }
-  .goal-pts-badge {
-    font-size: 10px;
-    color: var(--text3);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 2px 8px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    margin-left: 12px;
-  }
+  .history-table { width:100%; border-collapse:collapse; }
+  .history-table th { font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); padding:8px 12px; text-align:left; border-bottom:1px solid var(--border); }
+  .history-table td { padding:12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--text2); }
+  .history-table tr:hover td { background:var(--surface2); }
+  .score-pill { display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:500; }
+  .score-high { background:rgba(74,222,128,0.1); color:var(--green); }
+  .score-mid { background:rgba(251,146,60,0.1); color:var(--amber); }
+  .score-low { background:rgba(224,82,82,0.1); color:var(--red); }
 
-  /* ── CHECKBOXES ── */
-  .checkbox-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .cb-wrap { position: relative; }
-  .cb-wrap input[type="checkbox"] { display: none; }
-  .cb-wrap label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 10px;
-    color: var(--text3);
-    transition: all 0.15s;
-    user-select: none;
-  }
-  .cb-wrap input:checked + label {
-    background: rgba(201,168,76,0.15);
-    border-color: var(--gold);
-    color: var(--gold2);
-  }
-  .cb-day-label {
-    display: block;
-    font-size: 9px;
-    color: var(--text3);
-    text-align: center;
-    margin-top: 3px;
-  }
+  .setup-input { width:100%; background:var(--surface); border:1px solid var(--border2); border-radius:6px; padding:12px 16px; color:var(--text); font-family:var(--font-mono); font-size:12px; resize:vertical; min-height:200px; }
+  .setup-input:focus { outline:none; border-color:var(--gold); }
+  .settings-row { display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-bottom:1px solid var(--border); }
+  .settings-label { font-size:13px; color:var(--text); }
+  .settings-sub { font-size:11px; color:var(--text3); margin-top:2px; }
+  .settings-input { background:var(--surface2); border:1px solid var(--border2); border-radius:4px; padding:6px 12px; color:var(--text); font-family:var(--font-mono); font-size:12px; width:280px; }
+  .settings-input:focus { outline:none; border-color:var(--gold); }
 
-  /* ── NUMBER INPUT ── */
-  .number-input-wrap {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .num-btn {
-    width: 32px;
-    height: 32px;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    color: var(--text);
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-  }
-  .num-btn:hover { background: var(--border2); }
-  .num-display {
-    font-size: 20px;
-    font-family: var(--font-serif);
-    color: var(--gold);
-    min-width: 40px;
-    text-align: center;
-  }
-  .num-unit { font-size: 11px; color: var(--text3); }
+  .empty-state { text-align:center; padding:80px 40px; color:var(--text3); }
+  .empty-state h3 { font-family:var(--font-serif); font-size:22px; color:var(--text2); margin-bottom:8px; }
+  .empty-state p { font-size:13px; line-height:1.7; max-width:360px; margin:0 auto 24px; }
 
-  /* ── GOAL PROGRESS BAR ── */
-  .goal-progress {
-    margin-top: 10px;
-    height: 2px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .goal-progress-fill {
-    height: 100%;
-    background: var(--gold);
-    border-radius: 2px;
-    transition: width 0.3s ease;
-  }
+  .toast { position:fixed; bottom:32px; right:32px; background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:12px 20px; font-size:12px; color:var(--text); transform:translateY(80px); opacity:0; transition:all 0.3s; z-index:1000; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { border-color:var(--green); color:var(--green); }
+  .toast.error { border-color:var(--red); color:var(--red); }
 
-  /* ── BUTTONS ── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: 6px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.15s;
-    border: 1px solid var(--border2);
-    background: var(--surface2);
-    color: var(--text);
-  }
-  .btn:hover { border-color: var(--gold); color: var(--gold); }
-  .btn-primary {
-    background: var(--gold);
-    color: #0c0c0f;
-    border-color: var(--gold);
-    font-weight: 500;
-  }
-  .btn-primary:hover { background: var(--gold2); border-color: var(--gold2); color: #0c0c0f; }
-  .btn-group { display: flex; gap: 10px; margin-top: 32px; flex-wrap: wrap; }
+  .conn-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--text3); margin-right:6px; }
+  .conn-dot.connected { background:var(--green); }
+  .conn-dot.error { background:var(--red); }
 
-  /* ── REPORT OUTPUT ── */
-  .report-box {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    padding: 24px;
-    margin-top: 32px;
-    display: none;
-  }
-  .report-box.visible { display: block; }
-  .report-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  .report-title { font-family: var(--font-serif); font-size: 18px; color: var(--gold); }
-  .report-text {
-    font-size: 12px;
-    color: var(--text2);
-    line-height: 1.8;
-    white-space: pre-wrap;
-    font-family: var(--font-mono);
-    border-top: 1px solid var(--border);
-    padding-top: 16px;
-    max-height: 500px;
-    overflow-y: auto;
-  }
-  .copy-success { color: var(--teal); font-size: 11px; display: none; }
-  .copy-success.show { display: inline; }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
 
-  /* ── STATS PAGE ── */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-  }
-  .stat-label { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
-  .stat-value { font-family: var(--font-serif); font-size: 28px; font-weight: 500; color: var(--text); }
-  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-  .stat-card.on-track .stat-value { color: var(--green); }
-  .stat-card.behind .stat-value { color: var(--red); }
-  .stat-card.gold .stat-value { color: var(--gold); }
-
-  /* ── HISTORY TABLE ── */
-  .history-table { width: 100%; border-collapse: collapse; }
-  .history-table th {
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text3);
-    padding: 8px 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
-  .history-table td {
-    padding: 12px 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-    color: var(--text2);
-  }
-  .history-table tr:hover td { background: var(--surface2); }
-  .score-pill {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 500;
-  }
-  .score-high { background: rgba(74,222,128,0.1); color: var(--green); }
-  .score-mid { background: rgba(251,146,60,0.1); color: var(--amber); }
-  .score-low { background: rgba(224,82,82,0.1); color: var(--red); }
-
-  /* ── SETUP PAGE ── */
-  .setup-dropzone {
-    border: 1px dashed var(--border2);
-    border-radius: 8px;
-    padding: 40px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 24px;
-  }
-  .setup-dropzone:hover { border-color: var(--gold); }
-  .setup-dropzone .icon { font-size: 32px; margin-bottom: 12px; }
-  .setup-dropzone p { color: var(--text2); font-size: 13px; margin-bottom: 8px; }
-  .setup-dropzone small { color: var(--text3); font-size: 11px; }
-  .setup-input {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    resize: vertical;
-    min-height: 200px;
-  }
-  .setup-input:focus { outline: none; border-color: var(--gold); }
-  .settings-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .settings-label { font-size: 13px; color: var(--text); }
-  .settings-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
-  .settings-input {
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    padding: 6px 12px;
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    width: 280px;
-  }
-  .settings-input:focus { outline: none; border-color: var(--gold); }
-
-  /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center;
-    padding: 80px 40px;
-    color: var(--text3);
-  }
-  .empty-state .icon { font-size: 40px; margin-bottom: 16px; }
-  .empty-state h3 { font-family: var(--font-serif); font-size: 22px; color: var(--text2); margin-bottom: 8px; }
-  .empty-state p { font-size: 13px; line-height: 1.7; max-width: 360px; margin: 0 auto 24px; }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed;
-    bottom: 32px;
-    right: 32px;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 12px 20px;
-    font-size: 12px;
-    color: var(--text);
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s;
-    z-index: 1000;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-color: var(--green); color: var(--green); }
-  .toast.error { border-color: var(--red); color: var(--red); }
-
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  /* ── CONNECTION STATUS ── */
-  .conn-dot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--text3);
-    margin-right: 6px;
-  }
-  .conn-dot.connected { background: var(--green); }
-  .conn-dot.error { background: var(--red); }
-
-  .pillar-color-deen { color: #2dd4bf; }
-  .pillar-color-fitness { color: #f87171; }
-  .pillar-color-knowledge { color: #a78bfa; }
-  .pillar-color-professional { color: #60a5fa; }
-  .pillar-color-wealth { color: #fbbf24; }
-  .pillar-color-relationships { color: #f472b6; }
-
-  @media (max-width: 768px) {
-    .shell { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
-    .main { padding: 24px 20px; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  @media(max-width:768px) {
+    .shell { grid-template-columns:1fr; }
+    .sidebar { display:none; }
+    .main { padding:24px 20px; }
+    .stats-grid { grid-template-columns:repeat(2,1fr); }
   }
 </style>
 </head>
 <body>
-
 <div class="shell">
-
-  <!-- ── SIDEBAR ── -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <span class="arabic">بسم الله</span>
       <span class="sub">Performance Dashboard</span>
     </div>
-
     <div class="nav-section">
       <span class="nav-label">Weekly</span>
-      <button class="nav-item active" onclick="showPage('checkin')">
-        <span class="nav-dot" style="background:#2dd4bf"></span>
-        Check-in
-      </button>
-      <button class="nav-item" onclick="showPage('report')">
-        <span class="nav-dot" style="background:#c9a84c"></span>
-        Generate Report
-      </button>
+      <button class="nav-item active" onclick="showPage('checkin')"><span class="nav-dot" style="background:#2dd4bf"></span>Check-in</button>
+      <button class="nav-item" onclick="showPage('report')"><span class="nav-dot" style="background:#c9a84c"></span>Generate Report</button>
     </div>
-
     <div class="nav-section" style="margin-top:16px;">
       <span class="nav-label">Overview</span>
-      <button class="nav-item" onclick="showPage('stats')">
-        <span class="nav-dot" style="background:#60a5fa"></span>
-        Progress & Pace
-      </button>
-      <button class="nav-item" onclick="showPage('history')">
-        <span class="nav-dot" style="background:#a78bfa"></span>
-        Weekly History
-      </button>
+      <button class="nav-item" onclick="showPage('stats')"><span class="nav-dot" style="background:#60a5fa"></span>Progress & Pace</button>
+      <button class="nav-item" onclick="showPage('history')"><span class="nav-dot" style="background:#a78bfa"></span>Weekly History</button>
     </div>
-
     <div class="nav-section" style="margin-top:16px;">
       <span class="nav-label">System</span>
-      <button class="nav-item" onclick="showPage('setup')">
-        <span class="nav-dot" style="background:#888"></span>
-        Setup & Goals
-      </button>
+      <button class="nav-item" onclick="showPage('setup')"><span class="nav-dot" style="background:#888"></span>Setup & Goals</button>
     </div>
-
     <div class="sidebar-score">
       <div class="score-label">This week</div>
       <div class="score-big" id="sidebar-score">—</div>
@@ -546,10 +176,9 @@
     </div>
   </aside>
 
-  <!-- ── MAIN CONTENT ── -->
   <main class="main">
 
-    <!-- CHECK-IN PAGE -->
+    <!-- CHECK-IN -->
     <div class="page active" id="page-checkin">
       <div class="page-header">
         <div>
@@ -561,178 +190,137 @@
           <span id="header-week-dates">— —</span>
         </div>
       </div>
-
+      <div id="draft-banner" style="display:none;" class="draft-banner">
+        <span>Draft saved — <span class="draft-time" id="draft-time"></span></span>
+        <span style="font-size:11px;color:var(--text3);">Come back anytime to continue</span>
+      </div>
+      <div id="month-end-banner" style="display:none;" class="month-end-banner">
+        <strong>📅 End of month — monthly goals unlocked</strong>
+        Complete your monthly check-ins below before submitting this week.
+      </div>
       <div id="checkin-content">
         <div class="empty-state">
-          <div class="icon">📋</div>
           <h3>No goals loaded</h3>
-          <p>Go to Setup & Goals to load your goals JSON, then come back to check in.</p>
+          <p>Go to Setup & Goals to load your goals JSON.</p>
           <button class="btn btn-primary" onclick="showPage('setup')">Go to Setup →</button>
         </div>
       </div>
-
       <div class="btn-group" id="checkin-btns" style="display:none;">
-        <button class="btn btn-primary" onclick="saveCheckin()">Save Check-in</button>
-        <button class="btn" onclick="showPage('report')">Generate Report →</button>
+        <button class="btn btn-primary" onclick="submitCheckin()">Submit & Sync to Sheets</button>
+        <button class="btn btn-draft" onclick="saveDraft()">Save Draft</button>
       </div>
     </div>
 
-    <!-- REPORT PAGE -->
+    <!-- REPORT -->
     <div class="page" id="page-report">
       <div class="page-header">
         <div>
           <div class="page-title">Weekly Report</div>
           <div class="page-subtitle">Copy this. Paste it to Claude. Get scored.</div>
         </div>
-        <div class="week-badge">
-          <strong id="report-week-num">Week —</strong>
-          <span>Report</span>
-        </div>
+        <div class="week-badge"><strong id="report-week-num">Week —</strong><span>Report</span></div>
       </div>
-
-      <p style="color:var(--text2);font-size:13px;margin-bottom:24px;line-height:1.7;">
-        Hit Generate to build your weekly report from your check-in data. Copy the output and paste it to Claude with the system prompt at the top of your chat.
-      </p>
-
+      <p style="color:var(--text2);font-size:13px;margin-bottom:24px;line-height:1.7;">Generate your report from this week's check-in. Copy and paste to Claude for your score and analysis.</p>
       <div class="btn-group" style="margin-top:0;">
         <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
         <button class="btn" onclick="copyReport()" id="copy-btn" style="display:none;">Copy to Clipboard</button>
         <span class="copy-success" id="copy-success">Copied ✓</span>
       </div>
-
       <div class="report-box" id="report-box">
         <div class="report-header">
-          <span class="report-title">Weekly Report — Paste to Claude</span>
+          <span class="report-title">Paste to Claude →</span>
           <button class="btn" style="padding:6px 12px;font-size:11px;" onclick="copyReport()">Copy</button>
         </div>
         <div class="report-text" id="report-text"></div>
       </div>
     </div>
 
-    <!-- STATS PAGE -->
+    <!-- STATS -->
     <div class="page" id="page-stats">
       <div class="page-header">
-        <div>
-          <div class="page-title">Progress & Pace</div>
-          <div class="page-subtitle">Cumulative actual vs. annual targets. Where you stand today.</div>
-        </div>
+        <div><div class="page-title">Progress & Pace</div><div class="page-subtitle">Cumulative actuals vs. targets from Apr 19.</div></div>
       </div>
-      <div id="stats-content">
-        <div class="empty-state">
-          <div class="icon">📊</div>
-          <h3>No data yet</h3>
-          <p>Complete your first check-in to see your cumulative progress.</p>
-        </div>
-      </div>
+      <div id="stats-content"><div class="empty-state"><h3>No data yet</h3><p>Complete your first check-in.</p></div></div>
     </div>
 
-    <!-- HISTORY PAGE -->
+    <!-- HISTORY -->
     <div class="page" id="page-history">
       <div class="page-header">
-        <div>
-          <div class="page-title">Weekly History</div>
-          <div class="page-subtitle">Every week logged. Your record of truth.</div>
-        </div>
+        <div><div class="page-title">Weekly History</div><div class="page-subtitle">Every week logged. Your record of truth.</div></div>
       </div>
-      <div id="history-content">
-        <div class="empty-state">
-          <div class="icon">📅</div>
-          <h3>No history yet</h3>
-          <p>Your weekly scores will appear here after each check-in.</p>
-        </div>
-      </div>
+      <div id="history-content"><div class="empty-state"><h3>No history yet</h3><p>Your weekly scores appear here after each check-in.</p></div></div>
     </div>
 
-    <!-- SETUP PAGE -->
+    <!-- SETUP -->
     <div class="page" id="page-setup">
       <div class="page-header">
-        <div>
-          <div class="page-title">Setup & Goals</div>
-          <div class="page-subtitle">Configure your backend and load your goals.</div>
-        </div>
+        <div><div class="page-title">Setup & Goals</div><div class="page-subtitle">Configure backend and load goals.</div></div>
       </div>
-
       <div class="settings-row">
-        <div>
-          <div class="settings-label">Apps Script URL</div>
-          <div class="settings-sub">Paste your deployed Web App URL here</div>
-        </div>
+        <div><div class="settings-label">Apps Script URL</div><div class="settings-sub">Your deployed Web App URL</div></div>
         <input class="settings-input" type="text" id="api-url" placeholder="https://script.google.com/macros/s/..." oninput="saveConfig()">
       </div>
-
       <div class="settings-row">
-        <div>
-          <div class="settings-label">Connection Status</div>
-          <div class="settings-sub" id="conn-status"><span class="conn-dot" id="conn-dot"></span>Not tested</div>
-        </div>
+        <div><div class="settings-label">Connection Status</div><div class="settings-sub" id="conn-status"><span class="conn-dot"></span>Not tested</div></div>
         <button class="btn" onclick="testConnection()">Test Connection</button>
       </div>
-
       <div style="margin-top:32px;margin-bottom:16px;">
         <div style="font-family:var(--font-serif);font-size:18px;margin-bottom:8px;">Load Goals JSON</div>
-        <p style="font-size:12px;color:var(--text3);line-height:1.7;margin-bottom:16px;">
-          Paste the goals JSON (generated by Claude during setup). This uploads to Google Sheets and sets your dashboard targets.
-        </p>
+        <p style="font-size:12px;color:var(--text3);line-height:1.7;margin-bottom:16px;">Paste the goals JSON from Claude setup.</p>
       </div>
-
-      <textarea class="setup-input" id="goals-json-input" placeholder='Paste your goals JSON here...
-{
-  "meta": { "year": 2026, ... },
-  "pillars": [ ... ]
-}'></textarea>
-
+      <textarea class="setup-input" id="goals-json-input" placeholder='Paste your goals JSON here...'></textarea>
       <div class="btn-group">
         <button class="btn btn-primary" onclick="uploadGoals()">Upload Goals to Sheets</button>
         <button class="btn" onclick="loadGoalsFromSheets()">Load from Sheets</button>
       </div>
-
       <div id="setup-status" style="margin-top:16px;font-size:12px;color:var(--text3);"></div>
     </div>
 
   </main>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-// ── CONFIG ──────────────────────────────────────────────────
 const CONFIG_KEY = 'dashboard_config';
 const GOALS_KEY  = 'dashboard_goals';
 const LOG_KEY    = 'dashboard_log';
+const DRAFT_KEY  = 'dashboard_draft';
 
 let config = { apiUrl: '' };
 let goals = null;
 let weekLog = {};
+let draftLog = {};
 
-const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+// Week starts Sunday
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const PILLAR_COLORS = {
-  Deen: '#2dd4bf', Fitness: '#f87171',
-  Knowledge: '#a78bfa', Professional: '#60a5fa',
-  Wealth: '#fbbf24', Relationships: '#f472b6'
+  Deen:'#2dd4bf', Fitness:'#f87171',
+  Knowledge:'#a78bfa', Professional:'#60a5fa', Wealth:'#fbbf24'
 };
 
-// ── INIT ────────────────────────────────────────────────────
+// These goals only appear at end of month
+const MONTHLY_GOAL_IDS = ['wealth_savings','pro_clubeats','pro_online_biz','pro_talal_outputs'];
+
 window.addEventListener('DOMContentLoaded', () => {
   loadLocalConfig();
   loadLocalGoals();
   loadLocalLog();
+  loadDraft();
   updateWeekDisplay();
   renderCheckin();
 });
 
-// ── NAVIGATION ──────────────────────────────────────────────
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  const btns = document.querySelectorAll('.nav-item');
-  btns.forEach(b => { if (b.getAttribute('onclick').includes(name)) b.classList.add('active'); });
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(name)) b.classList.add('active');
+  });
   if (name === 'stats') renderStats();
   if (name === 'history') renderHistory();
-  if (name === 'report') {};
 }
 
-// ── CONFIG ──────────────────────────────────────────────────
 function loadLocalConfig() {
   const saved = localStorage.getItem(CONFIG_KEY);
   if (saved) { config = JSON.parse(saved); document.getElementById('api-url').value = config.apiUrl || ''; }
@@ -741,19 +329,19 @@ function saveConfig() {
   config.apiUrl = document.getElementById('api-url').value.trim();
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
+
 function normalizeGoal(g) {
-  // Normalize field names — Sheets returns snake_case, JSON upload uses camelCase
   return {
     goal_id:        g.goal_id || g.id || '',
     pillar:         g.pillar || '',
     label:          g.label || '',
     unit:           g.unit || '',
-    annual_target:  g.annual_target || g.annualTarget || 0,
-    weekly_target:  g.weekly_target || g.weeklyTarget || 0,
-    points_max:     g.points_max || g.pointsMax || 0,
-    points_per:     g.points_per || g.pointsPer || 0,
+    annual_target:  Number(g.annual_target || g.annualTarget || 0),
+    weekly_target:  Number(g.weekly_target || g.weeklyTarget || 0),
+    points_max:     Number(g.points_max || g.pointsMax || 0),
+    points_per:     Number(g.points_per || g.pointsPer || 0),
     input_type:     g.input_type || g.inputType || '',
-    checkbox_count: g.checkbox_count || g.checkboxCount || 0,
+    checkbox_count: Number(g.checkbox_count || g.checkboxCount || 0),
     monthly_target: g.monthly_target || g.monthlyTarget || '',
     note:           g.note || ''
   };
@@ -763,10 +351,7 @@ function loadLocalGoals() {
   const saved = localStorage.getItem(GOALS_KEY);
   if (saved) {
     const parsed = JSON.parse(saved);
-    // Normalize all goals on load
-    if (parsed && parsed.goals) {
-      parsed.goals = parsed.goals.map(normalizeGoal);
-    }
+    if (parsed && parsed.goals) parsed.goals = parsed.goals.map(normalizeGoal);
     goals = parsed;
   }
 }
@@ -774,54 +359,79 @@ function loadLocalLog() {
   const saved = localStorage.getItem(LOG_KEY);
   if (saved) weekLog = JSON.parse(saved);
 }
+function loadDraft() {
+  const saved = localStorage.getItem(DRAFT_KEY);
+  if (saved) {
+    const d = JSON.parse(saved);
+    draftLog = d.data || {};
+    if (d.savedAt) {
+      document.getElementById('draft-banner').style.display = 'flex';
+      document.getElementById('draft-time').textContent = new Date(d.savedAt).toLocaleString();
+    }
+  }
+}
 
-// ── WEEK HELPERS ────────────────────────────────────────────
+// Week starts Sunday (day 0)
 function getCurrentWeekNumber() {
   const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 1);
-  return Math.ceil((((now - start) / 86400000) + start.getDay() + 1) / 7);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+  return Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
 }
 function getWeekStart() {
   const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const mon = new Date(now); mon.setDate(diff);
-  return mon;
+  const sun = new Date(now);
+  sun.setDate(now.getDate() - now.getDay());
+  sun.setHours(0,0,0,0);
+  return sun;
 }
 function getWeekEnd() {
   const s = getWeekStart();
-  const e = new Date(s); e.setDate(s.getDate() + 6);
+  const e = new Date(s);
+  e.setDate(s.getDate() + 6);
   return e;
 }
 function fmtDate(d) {
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+}
+function isLastWeekOfMonth() {
+  const now = new Date();
+  const nextWeek = new Date(now);
+  nextWeek.setDate(now.getDate() + 7);
+  return nextWeek.getMonth() !== now.getMonth();
 }
 function updateWeekDisplay() {
   const wn = getCurrentWeekNumber();
   const ws = getWeekStart(), we = getWeekEnd();
-  const label = `W${wn} · ${fmtDate(ws)} – ${fmtDate(we)}`;
   document.getElementById('header-week-num').textContent = `Week ${wn}`;
   document.getElementById('header-week-dates').textContent = `${fmtDate(ws)} – ${fmtDate(we)}`;
   document.getElementById('sidebar-week').textContent = `Week ${wn}`;
   document.getElementById('report-week-num').textContent = `Week ${wn}`;
 }
 
-// ── RENDER CHECK-IN ─────────────────────────────────────────
 function renderCheckin() {
   if (!goals) return;
   const wn = getCurrentWeekNumber();
+  const monthEnd = isLastWeekOfMonth();
   const container = document.getElementById('checkin-content');
   document.getElementById('checkin-btns').style.display = 'flex';
+  if (monthEnd) document.getElementById('month-end-banner').style.display = 'block';
+
+  const activeLog = { ...weekLog, ...draftLog };
   let html = '';
   const pillarsMap = {};
-  goals.goals.forEach(g => {
+
+  // Filter out Relationships entirely
+  goals.goals.filter(g => g.pillar !== 'Relationships').forEach(g => {
     if (!pillarsMap[g.pillar]) pillarsMap[g.pillar] = [];
     pillarsMap[g.pillar].push(g);
   });
 
   Object.entries(pillarsMap).forEach(([pillar, pGoals]) => {
     const color = PILLAR_COLORS[pillar] || '#888';
-    const totalPts = pGoals.reduce((s, g) => s + (Number(g.points_max) || 0), 0);
+    const visibleGoals = pGoals.filter(g => monthEnd || !MONTHLY_GOAL_IDS.includes(g.goal_id));
+    const totalPts = visibleGoals.reduce((s, g) => s + g.points_max, 0);
+
     html += `<div class="pillar-block">
       <div class="pillar-header">
         <div class="nav-dot" style="background:${color};width:8px;height:8px;"></div>
@@ -832,26 +442,31 @@ function renderCheckin() {
 
     pGoals.forEach(g => {
       if (!g.goal_id || g.input_type === 'monthly_check') return;
-      const saved = weekLog[`${wn}_${g.goal_id}`];
-      html += `<div class="goal-row">
+      const isMonthly = MONTHLY_GOAL_IDS.includes(g.goal_id);
+      const isLocked = isMonthly && !monthEnd;
+      const saved = activeLog[`${wn}_${g.goal_id}`];
+
+      let rowClass = 'goal-row' + (isMonthly ? ' monthly-goal' : '') + (isLocked ? ' monthly-locked' : '');
+      html += `<div class="${rowClass}">
         <div class="goal-top">
           <div>
-            <div class="goal-label">${g.label}</div>
-            <div class="goal-target">Target: ${g.weekly_target || '—'} ${g.unit}</div>
+            <div class="goal-label">${g.label}${isMonthly ? '<span class="monthly-badge">Monthly</span>' : ''}</div>
+            <div class="goal-target">${isLocked ? 'Unlocks at end of month' : `Target: ${g.weekly_target || g.monthly_target || '—'} ${g.unit}`}</div>
           </div>
           <div class="goal-pts-badge">${g.points_max} pts</div>
         </div>`;
 
-      if (g.input_type === 'checkbox_count') {
+      if (isLocked) {
+        html += `<div class="locked-msg">Available in the last week of each month</div>`;
+      } else if (g.input_type === 'checkbox_count') {
         const count = parseInt(g.checkbox_count) || 7;
         const savedVal = saved ? saved.actual : 0;
-        html += `<div class="checkbox-row" id="cb-${g.goal_id}">`;
+        html += `<div class="checkbox-row">`;
         for (let i = 0; i < count; i++) {
           const checked = savedVal > i ? 'checked' : '';
-          const dayLabel = count === 7 ? DAYS[i] : (i + 1);
           html += `<div class="cb-wrap">
-            <input type="checkbox" id="cb_${g.goal_id}_${i}" ${checked} onchange="updateCheckin('${g.goal_id}','${g.input_type}')">
-            <label for="cb_${g.goal_id}_${i}">${count <= 2 ? (i+1) : ''}</label>
+            <input type="checkbox" id="cb_${g.goal_id}_${i}" ${checked} onchange="updateCheckin('${g.goal_id}','checkbox_count')">
+            <label for="cb_${g.goal_id}_${i}">${count <= 4 ? (i+1) : ''}</label>
             ${count === 7 ? `<span class="cb-day-label">${DAYS[i]}</span>` : ''}
           </div>`;
         }
@@ -866,11 +481,13 @@ function renderCheckin() {
         </div>`;
       }
 
-      const pct = saved ? Math.min(100, Math.round((saved.actual / (g.weekly_target || 1)) * 100)) : 0;
-      html += `<div class="goal-progress"><div class="goal-progress-fill" id="prog_${g.goal_id}" style="width:${pct}%"></div></div>`;
+      if (!isLocked) {
+        const target = Number(g.weekly_target) || 1;
+        const pct = saved ? Math.min(100, Math.round((saved.actual / target) * 100)) : 0;
+        html += `<div class="goal-progress"><div class="goal-progress-fill" id="prog_${g.goal_id}" style="width:${pct}%"></div></div>`;
+      }
       html += `</div>`;
     });
-
     html += `</div>`;
   });
 
@@ -878,20 +495,15 @@ function renderCheckin() {
   updateScoreDisplay();
 }
 
-// ── CHECKIN INTERACTIONS ────────────────────────────────────
-function updateCheckin(goalId, inputType) {
-  const wn = getCurrentWeekNumber();
+function updateCheckin(goalId) {
   const g = goals.goals.find(x => x.goal_id === goalId);
+  const count = parseInt(g.checkbox_count) || 7;
   let actual = 0;
-
-  if (inputType === 'checkbox_count') {
-    const count = parseInt(g.checkbox_count) || 7;
-    for (let i = 0; i < count; i++) {
-      const cb = document.getElementById(`cb_${goalId}_${i}`);
-      if (cb && cb.checked) actual++;
-    }
+  for (let i = 0; i < count; i++) {
+    const cb = document.getElementById(`cb_${goalId}_${i}`);
+    if (cb && cb.checked) actual++;
   }
-  saveToLog(goalId, actual, g);
+  writeToActiveLog(goalId, actual, g);
   updateProgressBar(goalId, actual, g.weekly_target);
   updateScoreDisplay();
 }
@@ -902,29 +514,26 @@ function adjustNum(goalId, delta) {
   let val = parseInt(el.textContent) + delta;
   if (val < 0) val = 0;
   el.textContent = val;
-  saveToLog(goalId, val, g);
+  writeToActiveLog(goalId, val, g);
   updateProgressBar(goalId, val, g.weekly_target);
   updateScoreDisplay();
 }
 
-function saveToLog(goalId, actual, g) {
+function writeToActiveLog(goalId, actual, g) {
   const wn = getCurrentWeekNumber();
   const key = `${wn}_${goalId}`;
   const target = Number(g.weekly_target) || 0;
   const pointsMax = Number(g.points_max) || 0;
   const pointsPer = Number(g.points_per) || 0;
   let score = 0;
-
   if (g.input_type === 'checkbox_count' && pointsPer > 0) {
     score = Math.min(pointsMax, actual * pointsPer);
   } else if (g.input_type === 'number' && target > 0) {
     score = Math.min(pointsMax, (actual / target) * pointsMax);
-  } else if (g.input_type === 'checkbox_count') {
+  } else if (g.input_type === 'checkbox_count' && target > 0) {
     score = actual >= target ? pointsMax : Math.round((actual / target) * pointsMax);
   }
-
-  weekLog[key] = { goal_id: goalId, actual, target, score: Math.round(score * 10) / 10 };
-  localStorage.setItem(LOG_KEY, JSON.stringify(weekLog));
+  draftLog[key] = { goal_id: goalId, actual, target, score: Math.round(score * 10) / 10 };
 }
 
 function updateProgressBar(goalId, actual, target) {
@@ -935,106 +544,107 @@ function updateProgressBar(goalId, actual, target) {
 function updateScoreDisplay() {
   if (!goals) return;
   const wn = getCurrentWeekNumber();
+  const monthEnd = isLastWeekOfMonth();
+  const activeLog = { ...weekLog, ...draftLog };
   let total = 0;
-
   const pillarsMap = {};
-  goals.goals.forEach(g => {
-    if (!pillarsMap[g.pillar]) pillarsMap[g.pillar] = { score: 0, max: 0 };
-    pillarsMap[g.pillar].max += Number(g.points_max) || 0;
-    const key = `${wn}_${g.goal_id}`;
-    if (weekLog[key]) pillarsMap[g.pillar].score += weekLog[key].score || 0;
+
+  goals.goals.filter(g => g.pillar !== 'Relationships').forEach(g => {
+    if (!pillarsMap[g.pillar]) pillarsMap[g.pillar] = { score:0, max:0 };
+    const isMonthly = MONTHLY_GOAL_IDS.includes(g.goal_id);
+    if (!isMonthly || monthEnd) {
+      pillarsMap[g.pillar].max += Number(g.points_max) || 0;
+      const key = `${wn}_${g.goal_id}`;
+      if (activeLog[key]) pillarsMap[g.pillar].score += activeLog[key].score || 0;
+    }
   });
 
   Object.entries(pillarsMap).forEach(([pillar, data]) => {
     const el = document.getElementById(`pillar-score-${pillar}`);
-    if (el) {
-      const s = Math.round(data.score * 10) / 10;
-      el.textContent = `${s} / ${data.max}`;
-      el.querySelector ? null : null;
-    }
+    if (el) el.textContent = `${Math.round(data.score*10)/10} / ${data.max}`;
     total += data.score;
   });
-
-  const totalRounded = Math.round(total);
-  document.getElementById('sidebar-score').textContent = totalRounded;
+  document.getElementById('sidebar-score').textContent = Math.round(total);
 }
 
-// ── SAVE CHECK-IN TO SHEETS ─────────────────────────────────
-async function saveCheckin() {
-  if (!config.apiUrl) { toast('Set your Apps Script URL in Setup first', 'error'); return; }
-  const wn = getCurrentWeekNumber();
-  const entries = Object.entries(weekLog)
-    .filter(([k]) => k.startsWith(`${wn}_`))
-    .map(([, v]) => v);
+function saveDraft() {
+  const now = new Date().toISOString();
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: draftLog, savedAt: now }));
+  document.getElementById('draft-banner').style.display = 'flex';
+  document.getElementById('draft-time').textContent = new Date(now).toLocaleString();
+  toast('Draft saved — come back anytime ✓', 'success');
+}
 
+async function submitCheckin() {
+  weekLog = { ...weekLog, ...draftLog };
+  localStorage.setItem(LOG_KEY, JSON.stringify(weekLog));
+  draftLog = {};
+  localStorage.removeItem(DRAFT_KEY);
+  document.getElementById('draft-banner').style.display = 'none';
+
+  if (!config.apiUrl) { toast('Saved locally. Add Sheets URL to sync.', 'success'); return; }
+  const wn = getCurrentWeekNumber();
+  const entries = Object.entries(weekLog).filter(([k]) => k.startsWith(`${wn}_`)).map(([,v]) => v);
   try {
-    const res = await fetch(`${config.apiUrl}?action=saveLog`, {
-      method: 'POST',
-      body: JSON.stringify({ weekNumber: wn, entries })
-    });
+    const res = await fetch(`${config.apiUrl}?action=saveLog`, { method:'POST', body: JSON.stringify({ weekNumber: wn, entries }) });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    toast('Check-in saved to Google Sheets ✓', 'success');
-  } catch (e) {
-    toast('Saved locally. Sheets sync failed: ' + e.message, 'error');
+    toast('Submitted to Google Sheets ✓', 'success');
+  } catch(e) {
+    toast('Saved locally. Sheets failed: ' + e.message, 'error');
   }
 }
 
-// ── GENERATE REPORT ─────────────────────────────────────────
 function generateReport() {
-  if (!goals) { toast('No goals loaded. Go to Setup first.', 'error'); return; }
+  if (!goals) { toast('No goals loaded.', 'error'); return; }
   const wn = getCurrentWeekNumber();
   const ws = getWeekStart(), we = getWeekEnd();
+  const monthEnd = isLastWeekOfMonth();
+  const activeLog = { ...weekLog, ...draftLog };
 
   let report = `══════════════════════════════════════════
 WEEKLY PERFORMANCE REPORT
-Week ${wn} · ${fmtDate(ws)} – ${fmtDate(we)}
+Week ${wn} · ${fmtDate(ws)} – ${fmtDate(we)}${monthEnd ? ' · MONTH-END' : ''}
 ══════════════════════════════════════════
 
 [SYSTEM CONTEXT]
-You are my accountability coach. Score this week out of 100 using the scoring system we defined. Be direct. No softening. Identify my highest-leverage fix for next week.
+You are my accountability coach as defined in our system prompt. Score this week out of 100. Be direct. No softening. Identify the single highest-leverage fix for next week.
 
 `;
 
   const pillarsMap = {};
-  goals.goals.forEach(g => {
+  goals.goals.filter(g => g.pillar !== 'Relationships').forEach(g => {
     if (!pillarsMap[g.pillar]) pillarsMap[g.pillar] = [];
     pillarsMap[g.pillar].push(g);
   });
 
-  let totalScore = 0;
-  let totalMax = 0;
-
+  let totalScore = 0, totalMax = 0;
   Object.entries(pillarsMap).forEach(([pillar, pGoals]) => {
-    let pillarScore = 0;
-    let pillarMax = 0;
+    let pillarScore = 0, pillarMax = 0;
     report += `── ${pillar.toUpperCase()} ──────────────────────────\n`;
-
     pGoals.forEach(g => {
       if (!g.goal_id || g.input_type === 'monthly_check') return;
+      const isMonthly = MONTHLY_GOAL_IDS.includes(g.goal_id);
+      if (isMonthly && !monthEnd) return;
       const key = `${wn}_${g.goal_id}`;
-      const entry = weekLog[key];
+      const entry = activeLog[key];
       const actual = entry ? entry.actual : 0;
-      const target = Number(g.weekly_target) || 0;
+      const target = Number(g.weekly_target) || Number(g.monthly_target) || 0;
       const score = entry ? (entry.score || 0) : 0;
       const max = Number(g.points_max) || 0;
       const pct = target > 0 ? Math.round((actual / target) * 100) : 0;
-      const status = actual >= target ? '✓' : '✗';
-
-      report += `${status} ${g.label}\n`;
+      report += `${actual >= target ? '✓' : '✗'} ${g.label}${isMonthly ? ' [MONTHLY]' : ''}\n`;
       report += `  Actual: ${actual} ${g.unit} | Target: ${target} ${g.unit} | ${pct}% | Score: ${Math.round(score*10)/10}/${max}\n`;
-
-      pillarScore += score;
-      pillarMax += max;
+      pillarScore += score; pillarMax += max;
     });
-
-    totalScore += pillarScore;
-    totalMax += pillarMax;
+    totalScore += pillarScore; totalMax += pillarMax;
     report += `PILLAR SCORE: ${Math.round(pillarScore*10)/10} / ${pillarMax}\n\n`;
   });
 
   report += `══════════════════════════════════════════
 TOTAL SCORE: ${Math.round(totalScore)} / ${totalMax}
+Weeks tracked since Apr 19: ${wn - 15}
+Weeks remaining in 2026: ${Math.max(0, 52 - wn)}
 ══════════════════════════════════════════
 
 [END OF REPORT — Await your analysis]`;
@@ -1045,155 +655,94 @@ TOTAL SCORE: ${Math.round(totalScore)} / ${totalMax}
 }
 
 function copyReport() {
-  const text = document.getElementById('report-text').textContent;
-  navigator.clipboard.writeText(text).then(() => {
+  navigator.clipboard.writeText(document.getElementById('report-text').textContent).then(() => {
     const s = document.getElementById('copy-success');
     s.classList.add('show');
-    toast('Report copied to clipboard ✓', 'success');
+    toast('Copied ✓', 'success');
     setTimeout(() => s.classList.remove('show'), 2000);
   });
 }
 
-// ── STATS ────────────────────────────────────────────────────
 function renderStats() {
   if (!goals) return;
   const wn = getCurrentWeekNumber();
-  const startWeek = 15; // Week 15 = Apr 13 approx
-  const weeksElapsed = Math.max(1, wn - startWeek + 1);
-
+  const weeksElapsed = Math.max(1, wn - 15);
+  const activeLog = { ...weekLog, ...draftLog };
   let html = '<div class="stats-grid">';
-  const totalScore = Object.values(weekLog)
-    .filter(e => String(e.goal_id))
-    .reduce((s, e) => s + (e.score || 0), 0);
+  const totalScore = Object.values(activeLog).reduce((s,e) => s + (e.score||0), 0);
+  const weeksLogged = new Set(Object.keys(activeLog).map(k => k.split('_')[0])).size;
+  html += `<div class="stat-card gold"><div class="stat-label">Cumulative score</div><div class="stat-value">${Math.round(totalScore)}</div><div class="stat-sub">pts earned</div></div>`;
+  html += `<div class="stat-card"><div class="stat-label">Weeks tracked</div><div class="stat-value">${weeksLogged}</div><div class="stat-sub">since Apr 19</div></div>`;
+  html += `<div class="stat-card"><div class="stat-label">Weeks remaining</div><div class="stat-value">${Math.max(0,52-wn)}</div><div class="stat-sub">until Dec 31</div></div>`;
+  html += '</div><div style="font-family:var(--font-serif);font-size:20px;margin-bottom:16px;">Goal Pace</div><div style="display:flex;flex-direction:column;gap:10px;">';
 
-  html += `<div class="stat-card gold">
-    <div class="stat-label">Total score (cumulative)</div>
-    <div class="stat-value">${Math.round(totalScore)}</div>
-    <div class="stat-sub">pts earned</div>
-  </div>`;
-  html += `<div class="stat-card">
-    <div class="stat-label">Weeks tracked</div>
-    <div class="stat-value">${Object.keys(weekLog).filter(k => k.includes('_deen_fajr') || k.includes('_fit_training')).length || 0}</div>
-    <div class="stat-sub">check-ins submitted</div>
-  </div>`;
-  html += `<div class="stat-card">
-    <div class="stat-label">Weeks remaining</div>
-    <div class="stat-value">37</div>
-    <div class="stat-sub">until Dec 31, 2026</div>
-  </div>`;
-  html += '</div>';
-
-  // Per-goal pace
-  html += '<div style="font-family:var(--font-serif);font-size:20px;margin-bottom:16px;margin-top:8px;">Goal Pace</div>';
-  html += '<div style="display:flex;flex-direction:column;gap:10px;">';
-
-  goals.goals.forEach(g => {
-    if (!g.goal_id || g.input_type === 'monthly_check' || !g.annual_target) return;
+  goals.goals.filter(g => g.pillar !== 'Relationships' && g.goal_id && g.input_type !== 'monthly_check' && g.annual_target).forEach(g => {
     let totalActual = 0;
-    Object.entries(weekLog).forEach(([k, v]) => {
-      if (k.endsWith('_' + g.goal_id)) totalActual += Number(v.actual) || 0;
-    });
-    const expectedByNow = (Number(g.weekly_target) || 0) * weeksElapsed;
-    const annualTarget = Number(g.annual_target) || 1;
-    const pct = Math.min(100, Math.round((totalActual / annualTarget) * 100));
+    Object.entries(activeLog).forEach(([k,v]) => { if (k.endsWith('_'+g.goal_id)) totalActual += Number(v.actual)||0; });
+    const annualTarget = Number(g.annual_target)||1;
+    const expectedByNow = (Number(g.weekly_target)||0) * weeksElapsed;
+    const pct = Math.min(100, Math.round((totalActual/annualTarget)*100));
     const onTrack = totalActual >= expectedByNow;
     const color = PILLAR_COLORS[g.pillar] || '#888';
-
     html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div>
-          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:8px;"></span>
-          <span style="font-size:13px;">${g.label}</span>
-        </div>
-        <span style="font-size:12px;color:${onTrack ? 'var(--green)':'var(--red)'};">${totalActual} / ${annualTarget} ${g.unit}</span>
+        <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:8px;"></span><span style="font-size:13px;">${g.label}</span></div>
+        <span style="font-size:12px;color:${onTrack?'var(--green)':'var(--red)'};">${totalActual} / ${annualTarget} ${g.unit}</span>
       </div>
-      <div style="height:4px;background:var(--border);border-radius:2px;">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width 0.3s;"></div>
-      </div>
+      <div style="height:4px;background:var(--border);border-radius:2px;"><div style="height:100%;width:${pct}%;background:${color};border-radius:2px;"></div></div>
       <div style="display:flex;justify-content:space-between;margin-top:6px;">
-        <span style="font-size:10px;color:var(--text3);">${pct}% of annual</span>
-        <span style="font-size:10px;color:${onTrack?'var(--green)':'var(--red)'};">${onTrack ? 'On pace' : `Behind by ${Math.round(expectedByNow - totalActual)} ${g.unit}`}</span>
+        <span style="font-size:10px;color:var(--text3);">${pct}% of target</span>
+        <span style="font-size:10px;color:${onTrack?'var(--green)':'var(--red)'};">${onTrack?'On pace':'Behind by '+Math.round(expectedByNow-totalActual)+' '+g.unit}</span>
       </div>
     </div>`;
   });
-
   html += '</div>';
   document.getElementById('stats-content').innerHTML = html;
 }
 
-// ── HISTORY ──────────────────────────────────────────────────
 function renderHistory() {
   const weeks = {};
-  Object.entries(weekLog).forEach(([k, v]) => {
+  Object.entries({...weekLog,...draftLog}).forEach(([k,v]) => {
     const wn = k.split('_')[0];
-    if (!weeks[wn]) weeks[wn] = { score: 0, entries: 0 };
-    weeks[wn].score += v.score || 0;
-    weeks[wn].entries++;
+    if (!weeks[wn]) weeks[wn] = { score:0, entries:0 };
+    weeks[wn].score += v.score||0; weeks[wn].entries++;
   });
-
-  const sortedWeeks = Object.keys(weeks).sort((a, b) => b - a);
-  if (!sortedWeeks.length) return;
-
-  let html = `<table class="history-table">
-    <thead><tr>
-      <th>Week</th><th>Score</th><th>Entries</th><th>Status</th>
-    </tr></thead><tbody>`;
-
-  sortedWeeks.forEach(wn => {
+  const sorted = Object.keys(weeks).sort((a,b) => b-a);
+  if (!sorted.length) return;
+  let html = `<table class="history-table"><thead><tr><th>Week</th><th>Score</th><th>Goals logged</th><th>Status</th></tr></thead><tbody>`;
+  sorted.forEach(wn => {
     const s = Math.round(weeks[wn].score);
-    const cls = s >= 80 ? 'score-high' : s >= 55 ? 'score-mid' : 'score-low';
-    const status = s >= 80 ? 'Strong' : s >= 55 ? 'Average' : 'Below standard';
-    html += `<tr>
-      <td>Week ${wn}</td>
-      <td><span class="score-pill ${cls}">${s} / 100</span></td>
-      <td style="color:var(--text3);">${weeks[wn].entries} goals</td>
-      <td style="color:var(--text3);">${status}</td>
-    </tr>`;
+    const cls = s>=80?'score-high':s>=55?'score-mid':'score-low';
+    html += `<tr><td>Week ${wn}</td><td><span class="score-pill ${cls}">${s}/100</span></td><td style="color:var(--text3);">${weeks[wn].entries}</td><td style="color:var(--text3);">${s>=80?'Strong':s>=55?'Average':'Below standard'}</td></tr>`;
   });
-
   html += '</tbody></table>';
   document.getElementById('history-content').innerHTML = html;
 }
 
-// ── UPLOAD GOALS ─────────────────────────────────────────────
 async function uploadGoals() {
   const raw = document.getElementById('goals-json-input').value.trim();
-  if (!raw) { toast('Paste your goals JSON first', 'error'); return; }
-
+  if (!raw) { toast('Paste goals JSON first', 'error'); return; }
   let parsed;
-  try { parsed = JSON.parse(raw); }
-  catch(e) { toast('Invalid JSON. Check formatting.', 'error'); return; }
-
-  // Flatten goals for local storage
+  try { parsed = JSON.parse(raw); } catch(e) { toast('Invalid JSON', 'error'); return; }
   const flat = { pillars: parsed.pillars, goals: [] };
-  parsed.pillars.forEach(p => p.goals.forEach(g => flat.goals.push(normalizeGoal({ ...g, pillar: p.pillar }))));
+  parsed.pillars.forEach(p => p.goals.forEach(g => flat.goals.push(normalizeGoal({...g, pillar:p.pillar}))));
   goals = flat;
   localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
-
   document.getElementById('setup-status').textContent = `✓ ${flat.goals.length} goals loaded locally.`;
-
   if (config.apiUrl) {
     try {
-      const res = await fetch(`${config.apiUrl}?action=saveGoals`, {
-        method: 'POST',
-        body: JSON.stringify(parsed)
-      });
+      const res = await fetch(`${config.apiUrl}?action=saveGoals`, { method:'POST', body: JSON.stringify(parsed) });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      document.getElementById('setup-status').textContent = `✓ ${flat.goals.length} goals saved to Google Sheets.`;
-      toast('Goals uploaded to Sheets ✓', 'success');
-    } catch(e) {
-      document.getElementById('setup-status').textContent = `Saved locally only. Sheets error: ${e.message}`;
-    }
-  } else {
-    toast('Goals saved locally. Add Sheets URL to sync.', 'success');
-  }
-
+      document.getElementById('setup-status').textContent = `✓ ${flat.goals.length} goals saved to Sheets.`;
+      toast('Goals uploaded ✓', 'success');
+    } catch(e) { document.getElementById('setup-status').textContent = `Local only. Sheets: ${e.message}`; }
+  } else { toast('Goals saved locally ✓', 'success'); }
   renderCheckin();
 }
 
 async function loadGoalsFromSheets() {
-  if (!config.apiUrl) { toast('Set Apps Script URL first', 'error'); return; }
+  if (!config.apiUrl) { toast('Set URL first', 'error'); return; }
   try {
     const res = await fetch(`${config.apiUrl}?action=getGoals`);
     const data = await res.json();
@@ -1202,38 +751,32 @@ async function loadGoalsFromSheets() {
     goals = data;
     localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
     renderCheckin();
-    toast(`Loaded ${data.total} goals from Sheets ✓`, 'success');
-  } catch(e) {
-    toast('Failed: ' + e.message, 'error');
-  }
+    toast(`Loaded ${data.total} goals ✓`, 'success');
+  } catch(e) { toast('Failed: '+e.message, 'error'); }
 }
 
-// ── CONNECTION TEST ───────────────────────────────────────────
 async function testConnection() {
   const url = document.getElementById('api-url').value.trim();
-  if (!url) { toast('Enter your Apps Script URL first', 'error'); return; }
-  const dot = document.getElementById('conn-dot');
-  const status = document.getElementById('conn-status');
-  status.innerHTML = '<span class="conn-dot" id="conn-dot"></span>Testing...';
+  if (!url) { toast('Enter URL first', 'error'); return; }
+  document.getElementById('conn-status').innerHTML = '<span class="conn-dot"></span>Testing...';
   try {
     const res = await fetch(`${url}?action=ping`);
     const data = await res.json();
     if (data.status === 'ok') {
-      status.innerHTML = '<span class="conn-dot connected" id="conn-dot"></span>Connected ✓';
-      toast('Connection successful ✓', 'success');
+      document.getElementById('conn-status').innerHTML = '<span class="conn-dot connected"></span>Connected ✓';
+      toast('Connected ✓', 'success');
     } else throw new Error('Bad response');
   } catch(e) {
-    status.innerHTML = '<span class="conn-dot error" id="conn-dot"></span>Failed — check URL';
+    document.getElementById('conn-status').innerHTML = '<span class="conn-dot error"></span>Failed';
     toast('Connection failed', 'error');
   }
 }
 
-// ── TOAST ────────────────────────────────────────────────────
-function toast(msg, type = '') {
+function toast(msg, type='') {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = 'toast show ' + type;
-  setTimeout(() => el.className = 'toast', 3000);
+  el.className = 'toast show '+type;
+  setTimeout(() => el.className='toast', 3000);
 }
 </script>
 </body>
