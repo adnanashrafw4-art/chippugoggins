@@ -122,6 +122,7 @@
   ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
   @media(max-width:768px){.shell{grid-template-columns:1fr;}.sidebar{display:none;}.main{padding:24px 20px;}.stats-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -570,38 +571,197 @@ function copyReport(){
 
 function renderStats(){
   if(!goals)return;
-  const wn=getCurrentWeekNumber();const weeksElapsed=Math.max(1,wn-15);
-  const activeLog={...weekLog,...draftLog};
-  let html='<div class="stats-grid">';
-  const totalScore=Object.values(activeLog).reduce((s,e)=>s+(e.score||0),0);
-  const weeksLogged=new Set(Object.keys(activeLog).map(k=>k.split('_')[0])).size;
-  html+=`<div class="stat-card gold"><div class="stat-label">Cumulative score</div><div class="stat-value">${Math.round(totalScore)}</div><div class="stat-sub">pts earned</div></div>`;
-  html+=`<div class="stat-card"><div class="stat-label">Weeks tracked</div><div class="stat-value">${weeksLogged}</div><div class="stat-sub">since Apr 19</div></div>`;
-  html+=`<div class="stat-card"><div class="stat-label">Weeks remaining</div><div class="stat-value">${Math.max(0,52-wn)}</div><div class="stat-sub">until Dec 31</div></div>`;
-  html+='</div><div style="font-family:var(--font-serif);font-size:20px;margin-bottom:16px;">Goal Pace</div><div style="display:flex;flex-direction:column;gap:10px;">';
+  const MONTHLY_IDS=['wealth_savings','wealth_budget','pro_talal_outputs'];
+  const wn=getCurrentWeekNumber();
+  const weeksElapsed=Math.max(1,wn-15);
+  const allLog={...weekLog,...draftLog};
+  const now=new Date();
+  const currentMonth=now.getMonth();
+  const currentYear=now.getFullYear();
+  const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const thisMonthName=monthNames[currentMonth];
+  const lastMonthName=monthNames[(currentMonth+11)%12];
+  const PCOLORS={Deen:'#2dd4bf',Fitness:'#f87171',Knowledge:'#a78bfa',Professional:'#60a5fa',Wealth:'#fbbf24'};
 
-  goals.goals.filter(g=>g.pillar!=='Relationships'&&g.goal_id&&g.input_type!=='monthly_check'&&g.annual_target).forEach(g=>{
-    let totalActual=0;
-    Object.entries(activeLog).forEach(([k,v])=>{if(k.endsWith('_'+g.goal_id))totalActual+=Number(v.actual)||0;});
-    const annualTarget=Number(g.annual_target)||1;
-    const expectedByNow=(Number(g.weekly_target)||0)*weeksElapsed;
-    const pct=Math.min(100,Math.round((totalActual/annualTarget)*100));
-    const onTrack=totalActual>=expectedByNow;
-    const color=PILLAR_COLORS[g.pillar]||'#888';
-    html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:8px;"></span><span style="font-size:13px;">${g.label}</span></div>
-        <span style="font-size:12px;color:${onTrack?'var(--green)':'var(--red)'};">${totalActual} / ${annualTarget} ${g.unit}</span>
+  const allWeeks=[...new Set(Object.keys(allLog).map(k=>parseInt(k.split('_')[0])))].sort((a,b)=>a-b);
+  const latestWeek=allWeeks[allWeeks.length-1]||wn;
+  const prevWeek=allWeeks.length>=2?allWeeks[allWeeks.length-2]:null;
+
+  function getWeekScore(w){
+    let t=0;Object.entries(allLog).forEach(([k,v])=>{if(k.startsWith(w+'_'))t+=v.score||0;});return Math.round(t);
+  }
+  function getPillarWeekScore(pillar,w){
+    let s=0;goals.goals.filter(g=>g.pillar===pillar).forEach(g=>{const k=w+'_'+g.goal_id;if(allLog[k])s+=allLog[k].score||0;});return Math.round(s*10)/10;
+  }
+  function getMonthWeeks(offset){
+    const td=new Date(currentYear,currentMonth+offset,1);const tm=td.getMonth();const ty=td.getFullYear();
+    return allWeeks.filter(w=>{const wd=new Date(ty,0,1+(w-1)*7);return wd.getMonth()===tm&&wd.getFullYear()===ty;});
+  }
+  function getPillarMonthAvg(pillar,offset){
+    const weeks=getMonthWeeks(offset);if(!weeks.length)return 0;
+    let t=0;weeks.forEach(w=>{t+=getPillarWeekScore(pillar,w);});return Math.round((t/weeks.length)*10)/10;
+  }
+
+  const pillars=[...new Set(goals.goals.filter(g=>g.pillar!=='Relationships').map(g=>g.pillar))];
+  const thisWeekScore=getWeekScore(latestWeek);
+  const lastWeekScore=prevWeek?getWeekScore(prevWeek):null;
+  const weekDelta=lastWeekScore!==null?thisWeekScore-lastWeekScore:null;
+
+  let html='';
+
+  // ── WEEK ON WEEK ──
+  html+=`<div style="margin-bottom:36px;">
+    <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#8a8880;margin-bottom:14px;">Week on week</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;">
+        <div style="font-size:10px;color:#8a8880;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">Week ${latestWeek}</div>
+        <div style="font-size:32px;font-family:'Cormorant Garamond',serif;font-weight:600;color:#c9a84c;">${thisWeekScore}</div>
+        <div style="font-size:11px;color:#504e4a;">/ 100</div>
       </div>
-      <div style="height:4px;background:var(--border);border-radius:2px;"><div style="height:100%;width:${pct}%;background:${color};border-radius:2px;"></div></div>
-      <div style="display:flex;justify-content:space-between;margin-top:6px;">
-        <span style="font-size:10px;color:var(--text3);">${pct}% of target</span>
-        <span style="font-size:10px;color:${onTrack?'var(--green)':'var(--red)'};">${onTrack?'On pace':'Behind by '+Math.round(expectedByNow-totalActual)+' '+g.unit}</span>
+      <div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;">
+        <div style="font-size:10px;color:#8a8880;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">${prevWeek?'Week '+prevWeek:'Previous'}</div>
+        <div style="font-size:32px;font-family:'Cormorant Garamond',serif;font-weight:600;color:#8a8880;">${lastWeekScore!==null?lastWeekScore:'—'}</div>
+        <div style="font-size:11px;color:#504e4a;">/ 100</div>
+      </div>
+      <div style="background:#13131a;border:1px solid ${weekDelta===null?'rgba(255,255,255,0.07)':weekDelta>=0?'rgba(74,222,128,0.2)':'rgba(224,82,82,0.2)'};border-radius:8px;padding:16px;">
+        <div style="font-size:10px;color:#8a8880;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">Change</div>
+        <div style="font-size:32px;font-family:'Cormorant Garamond',serif;font-weight:600;color:${weekDelta===null?'#504e4a':weekDelta>=0?'#4ade80':'#e05252'};">${weekDelta===null?'—':(weekDelta>=0?'+':'')+weekDelta}</div>
+        <div style="font-size:11px;color:${weekDelta===null?'#504e4a':weekDelta>=0?'#4ade80':'#e05252'};">${weekDelta===null?'no comparison':weekDelta>=0?'improving':'declining'}</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;">`;
+
+  pillars.forEach(p=>{
+    const ts=getPillarWeekScore(p,latestWeek);
+    const ls=prevWeek?getPillarWeekScore(p,prevWeek):null;
+    const max=goals.goals.filter(g=>g.pillar===p&&!MONTHLY_IDS.includes(g.goal_id)).reduce((s,g)=>s+Number(g.points_max),0);
+    const pct=max>0?Math.min(100,Math.round((ts/max)*100)):0;
+    const lpct=ls!==null&&max>0?Math.min(100,Math.round((ls/max)*100)):0;
+    const c=PCOLORS[p]||'#888';
+    const delta=ls!==null?Math.round((ts-ls)*10)/10:null;
+    html+=`<div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:7px;height:7px;border-radius:50%;background:${c};"></div><span style="font-size:12px;color:#e8e6de;">${p}</span></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${delta!==null?`<span style="font-size:11px;color:${delta>=0?'#4ade80':'#e05252'};">${delta>=0?'+':''}${delta}</span>`:''}
+          <span style="font-size:13px;color:#c9a84c;">${ts}<span style="color:#504e4a;font-size:10px;"> /${max}</span></span>
+        </div>
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:3px;">
+        <div style="height:100%;width:${pct}%;background:${c};border-radius:2px;"></div>
+      </div>
+      ${ls!==null?`<div style="height:3px;background:rgba(255,255,255,0.03);border-radius:2px;"><div style="height:100%;width:${lpct}%;background:${c};border-radius:2px;opacity:0.25;"></div></div>`:''}
+    </div>`;
+  });
+  html+=`</div></div>`;
+
+  // ── MONTH ON MONTH ──
+  const thisMonthWeeks=getMonthWeeks(0);const lastMonthWeeks=getMonthWeeks(-1);
+  html+=`<div style="margin-bottom:36px;">
+    <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#8a8880;margin-bottom:14px;">Month on month — ${lastMonthName} vs ${thisMonthName}</div>`;
+
+  if(!thisMonthWeeks.length&&!lastMonthWeeks.length){
+    html+=`<div style="color:#504e4a;font-size:13px;padding:12px 0;">Not enough weeks logged for month comparison yet.</div>`;
+  }else{
+    html+=`<div style="display:flex;flex-direction:column;gap:8px;">`;
+    pillars.forEach(p=>{
+      const tm=getPillarMonthAvg(p,0);const lm=getPillarMonthAvg(p,-1);
+      const max=goals.goals.filter(g=>g.pillar===p).reduce((s,g)=>s+Number(g.points_max),0);
+      const tp=max>0?Math.min(100,Math.round((tm/max)*100)):0;
+      const lp=max>0?Math.min(100,Math.round((lm/max)*100)):0;
+      const c=PCOLORS[p]||'#888';const better=tm>=lm;
+      html+=`<div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;"><div style="width:7px;height:7px;border-radius:50%;background:${c};"></div><span style="font-size:12px;color:#e8e6de;">${p}</span></div>
+          <span style="font-size:11px;color:${better?'#4ade80':'#e05252'};">${better?'▲ improved':'▼ dropped'}</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;">
+          <span style="font-size:10px;color:#8a8880;width:30px;flex-shrink:0;">${lastMonthName}</span>
+          <div style="flex:1;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;"><div style="height:100%;width:${lp}%;background:${c};border-radius:4px;opacity:0.35;"></div></div>
+          <span style="font-size:11px;color:#504e4a;width:28px;text-align:right;">${lm}</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:10px;color:#c9a84c;width:30px;flex-shrink:0;">${thisMonthName}</span>
+          <div style="flex:1;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;"><div style="height:100%;width:${tp}%;background:${c};border-radius:4px;"></div></div>
+          <span style="font-size:11px;color:#c9a84c;width:28px;text-align:right;">${tm}</span>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  html+=`</div>`;
+
+  // ── ANNUAL PACE ──
+  html+=`<div style="margin-bottom:36px;">
+    <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#8a8880;margin-bottom:14px;">Annual pace — YTD vs expected (gold marker)</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">`;
+
+  goals.goals.filter(g=>g.pillar!=='Relationships'&&g.goal_id&&g.input_type!=='monthly_check'&&g.annual_target&&g.weekly_target).forEach(g=>{
+    let tot=0;Object.entries(allLog).forEach(([k,v])=>{if(k.endsWith('_'+g.goal_id))tot+=Number(v.actual)||0;});
+    const ann=Number(g.annual_target)||1;
+    const exp=(Number(g.weekly_target)||0)*weeksElapsed;
+    const pct=Math.min(100,Math.round((tot/ann)*100));
+    const expPct=Math.min(99,Math.round((exp/ann)*100));
+    const c=PCOLORS[g.pillar]||'#888';const ok=tot>=exp;
+    const gap=ok?`+${Math.round(tot-exp)} ${g.unit} ahead`:`${Math.round(exp-tot)} ${g.unit} behind`;
+    html+=`<div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:6px;height:6px;border-radius:50%;background:${c};"></div><span style="font-size:12px;color:#e8e6de;">${g.label}</span></div>
+        <div style="text-align:right;"><div style="font-size:12px;color:${ok?'#4ade80':'#e05252'};">${gap}</div><div style="font-size:10px;color:#504e4a;">${tot} / ${ann} ${g.unit}</div></div>
+      </div>
+      <div style="position:relative;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;">
+        <div style="height:100%;width:${pct}%;background:${c};border-radius:4px;"></div>
+        <div style="position:absolute;top:-3px;left:calc(${expPct}% - 1px);width:2px;height:14px;background:#c9a84c;border-radius:1px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px;">
+        <span style="font-size:10px;color:#504e4a;">${pct}% complete</span>
+        <span style="font-size:10px;color:#c9a84c;">│ expected now: ${expPct}%</span>
       </div>
     </div>`;
   });
-  html+='</div>';
+  html+=`</div></div>`;
+
+  // ── SCORE TREND ──
+  if(allWeeks.length>=2){
+    const scores=allWeeks.map(w=>getWeekScore(w));
+    html+=`<div style="margin-bottom:36px;">
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#8a8880;margin-bottom:14px;">Score trend</div>
+      <div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;">
+        <div style="position:relative;height:120px;"><canvas id="spark-chart" role="img" aria-label="Weekly score trend">${scores.join(', ')}</canvas></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+          <span style="font-size:10px;color:#504e4a;">Wk ${allWeeks[0]}</span>
+          <span style="font-size:10px;color:#504e4a;">Wk ${allWeeks[allWeeks.length-1]}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
   document.getElementById('stats-content').innerHTML=html;
+
+  if(allWeeks.length>=2&&window.Chart){
+    const scores=allWeeks.map(w=>getWeekScore(w));
+    if(window._sparkChart){try{window._sparkChart.destroy();}catch(e){}}
+    window._sparkChart=new window.Chart(document.getElementById('spark-chart'),{
+      type:'line',
+      data:{
+        labels:allWeeks.map(w=>'W'+w),
+        datasets:[{
+          data:scores,borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,0.08)',
+          borderWidth:2,tension:0.35,fill:true,
+          pointBackgroundColor:scores.map(s=>s>=80?'#4ade80':s>=55?'#c9a84c':'#e05252'),
+          pointRadius:4,pointHoverRadius:6
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a24',titleColor:'#c9a84c',bodyColor:'#8a8880',borderColor:'rgba(255,255,255,0.12)',borderWidth:1}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#504e4a',font:{size:10}}},
+          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#504e4a',font:{size:10}}}
+        }
+      }
+    });
+  }
 }
 
 function renderHistory(){
