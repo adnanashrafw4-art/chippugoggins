@@ -330,37 +330,39 @@ function loadDraft(){
       document.getElementById('draft-time').textContent=new Date(d.savedAt).toLocaleString();}}
 }
 
-// Week = Mon-Sun. On Sunday, review the week that just ended.
+// Week = Mon–Sun. Sunday is review day for the week just completed.
 function isSunday(){ return new Date().getDay()===0; }
 
 function getReviewWeekStart(){
-  // The week being reviewed: always the Mon-Sun that ended on the most recent Sunday
+  // Returns the Monday that started the week being reviewed.
+  // On Sunday: Monday 6 days ago. Any other day: Monday of current week.
   const now=new Date();
-  const day=now.getDay(); // 0=Sun,1=Mon...6=Sat
-  // Last Sunday (today if Sunday, else previous Sunday)
-  const lastSun=new Date(now);
-  lastSun.setDate(now.getDate()-day);
-  lastSun.setHours(0,0,0,0);
-  // Monday of that week
-  const mon=new Date(lastSun);
-  mon.setDate(lastSun.getDate()-6);
+  const day=now.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  const mon=new Date(now);
+  if(day===0){
+    // Sunday — look back to Mon 6 days ago
+    mon.setDate(now.getDate()-6);
+  } else {
+    // Mon-Sat — current week's Monday
+    mon.setDate(now.getDate()-(day-1));
+  }
+  mon.setHours(0,0,0,0);
   return mon;
 }
 function getReviewWeekEnd(){
-  // Sunday of the review week
-  const now=new Date();
-  const day=now.getDay();
-  const lastSun=new Date(now);
-  lastSun.setDate(now.getDate()-day);
-  lastSun.setHours(23,59,59);
-  return lastSun;
+  // Sunday that closes the review week
+  const mon=getReviewWeekStart();
+  const sun=new Date(mon);
+  sun.setDate(mon.getDate()+6);
+  sun.setHours(23,59,59);
+  return sun;
 }
 function getCurrentWeekNumber(){
-  // ISO week number based on Mon-Sun weeks
-  const d=getReviewWeekStart();
-  const soy=new Date(d.getFullYear(),0,1);
-  const day=Math.floor((d-soy)/86400000);
-  return Math.ceil((day+((soy.getDay()||7))+1)/7);
+  // ISO-style week number: week 1 = week containing Jan 1, Mon start
+  const mon=getReviewWeekStart();
+  const soy=new Date(mon.getFullYear(),0,1);
+  const dayOfYear=Math.floor((mon-soy)/86400000);
+  return Math.ceil((dayOfYear+1)/7);
 }
 function fmtDate(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function isLastWeekOfMonth(){
