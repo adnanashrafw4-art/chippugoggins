@@ -122,7 +122,6 @@
   ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
   @media(max-width:768px){.shell{grid-template-columns:1fr;}.sidebar{display:none;}.main{padding:24px 20px;}.stats-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -358,11 +357,18 @@ function getReviewWeekEnd(){
   return sun;
 }
 function getCurrentWeekNumber(){
-  // ISO-style week number: week 1 = week containing Jan 1, Mon start
+  // True ISO week number (Mon-Sun, week 1 = first week with majority of days in new year)
   const mon=getReviewWeekStart();
-  const soy=new Date(mon.getFullYear(),0,1);
-  const dayOfYear=Math.floor((mon-soy)/86400000);
-  return Math.ceil((dayOfYear+1)/7);
+  const d=new Date(Date.UTC(mon.getFullYear(),mon.getMonth(),mon.getDate()));
+  const dayNum=d.getUTCDay()||7;
+  d.setUTCDate(d.getUTCDate()+4-dayNum);
+  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d-yearStart)/86400000)+1)/7);
+}
+function getWeekKey(){
+  // Use week_start date as canonical key (YYYY-MM-DD) — immune to week number drift
+  const mon=getReviewWeekStart();
+  return mon.toISOString().split('T')[0];
 }
 function fmtDate(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function isFirstWeekOfMonth(){
@@ -382,7 +388,7 @@ function updateWeekDisplay(){
   const ws=getReviewWeekStart(),we=getReviewWeekEnd();
   const sunday=isSunday();
   document.getElementById('header-week-num').textContent='Week '+wn;
-  document.getElementById('header-week-dates').textContent=fmtDate(ws)+' – '+fmtDate(we);
+  document.getElementById('header-week-dates').textContent=fmtDate(getReviewWeekStart())+' – '+fmtDate(getReviewWeekEnd());
   document.getElementById('sidebar-week').textContent='Week '+wn;
   document.getElementById('report-week-num').textContent='Week '+wn;
   const inlineDates=document.getElementById('header-week-dates-inline');
@@ -402,7 +408,7 @@ function updateWeekDisplay(){
 
 function renderCheckin(){
   if(!goals)return;
-  const wn=getCurrentWeekNumber();const monthEnd=isLastWeekOfMonth();
+  const wn=getCurrentWeekNumber();const wkey=getWeekKey();const monthEnd=isLastWeekOfMonth();
   const container=document.getElementById('checkin-content');
   document.getElementById('checkin-btns').style.display='flex';
   if(monthEnd)document.getElementById('month-end-banner').style.display='block';
@@ -430,7 +436,7 @@ function renderCheckin(){
       if(!g.goal_id||g.input_type==='monthly_check')return;
       const isMonthly=MONTHLY_GOAL_IDS.includes(g.goal_id);
       const isLocked=isMonthly&&!monthEnd;
-      const saved=activeLog[wn+'_'+g.goal_id];
+      const saved=activeLog[wkey+'_'+g.goal_id];
       let rowClass='goal-row'+(isMonthly?' monthly-goal':'')+(isLocked?' monthly-locked':'');
       html+=`<div class="${rowClass}">
         <div class="goal-top">
@@ -501,8 +507,7 @@ function adjustNum(goalId,delta){
 }
 
 function writeToActiveLog(goalId,actual,g){
-  const wn=getCurrentWeekNumber();
-  const key=wn+'_'+goalId;
+  const key=getWeekKey()+'_'+goalId;
   const target=Number(g.weekly_target)||0;
   const pMax=Number(g.points_max)||0;
   const pPer=Number(g.points_per)||0;
@@ -521,7 +526,8 @@ function updateProgressBar(goalId,actual,target){
 
 function updateScoreDisplay(){
   if(!goals)return;
-  const wn=getCurrentWeekNumber();const monthEnd=isLastWeekOfMonth();
+  const monthEnd=isLastWeekOfMonth();
+  const wkey=getWeekKey();
   const activeLog={...weekLog,...draftLog};
   let total=0;const pillarsMap={};
   goals.goals.filter(g=>g.pillar!=='Relationships').forEach(g=>{
@@ -529,7 +535,7 @@ function updateScoreDisplay(){
     const isMonthly=MONTHLY_GOAL_IDS.includes(g.goal_id);
     if(!isMonthly||monthEnd){
       pillarsMap[g.pillar].max+=Number(g.points_max)||0;
-      const key=wn+'_'+g.goal_id;
+      const key=wkey+'_'+g.goal_id;
       if(activeLog[key])pillarsMap[g.pillar].score+=activeLog[key].score||0;
     }
   });
@@ -556,9 +562,10 @@ async function submitCheckin(){
   document.getElementById('draft-banner').style.display='none';
   if(!config.apiUrl){toast('Saved locally. Add Sheets URL to sync.','success');return;}
   const wn=getCurrentWeekNumber();
-  const entries=Object.entries(weekLog).filter(([k])=>k.startsWith(wn+'_')).map(([,v])=>v);
+  const wkey=getWeekKey();
+  const entries=Object.entries(weekLog).filter(([k])=>k.startsWith(wkey+'_')).map(([,v])=>v);
   try{
-    const res=await fetch(config.apiUrl+'?action=saveLog',{method:'POST',body:JSON.stringify({weekNumber:wn,entries})});
+    const res=await fetch(config.apiUrl+'?action=saveLog',{method:'POST',body:JSON.stringify({weekNumber:wn,weekStart:wkey,entries})});
     const data=await res.json();if(data.error)throw new Error(data.error);
     toast('Submitted to Google Sheets ✓','success');
   }catch(e){toast('Saved locally. Sheets failed: '+e.message,'error');}
@@ -566,7 +573,7 @@ async function submitCheckin(){
 
 function generateReport(){
   if(!goals){toast('No goals loaded.','error');return;}
-  const wn=getCurrentWeekNumber();const ws=getWeekStart(),we=getWeekEnd();
+  const wn=getCurrentWeekNumber();const wkey=getWeekKey();const ws=getReviewWeekStart(),we=getReviewWeekEnd();
   const monthEnd=isLastWeekOfMonth();const activeLog={...weekLog,...draftLog};
   let report='══════════════════════════════════════════\n';
   report+='WEEKLY PERFORMANCE REPORT\n';
@@ -587,7 +594,7 @@ function generateReport(){
       if(!g.goal_id||g.input_type==='monthly_check')return;
       const isMonthly=MONTHLY_GOAL_IDS.includes(g.goal_id);
       if(isMonthly&&!monthEnd)return;
-      const key=wn+'_'+g.goal_id;const entry=activeLog[key];
+      const key=wkey+'_'+g.goal_id;const entry=activeLog[key];
       const actual=entry?entry.actual:0;
       const target=Number(g.weekly_target)||Number(g.monthly_target)||0;
       const score=entry?(entry.score||0):0;const max=Number(g.points_max)||0;
@@ -787,7 +794,16 @@ function renderStats(){
 
   document.getElementById('stats-content').innerHTML=html;
 
-  if(allWeeks.length>=2&&window.Chart){
+  if(allWeeks.length>=2){
+    if(!window.Chart){
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+      s.onload=()=>drawSparkline(allWeeks,allLog);
+      document.head.appendChild(s);
+    } else { drawSparkline(allWeeks,allLog); }
+  }
+  function drawSparkline(allWeeks,allLog){
+    if(!window.Chart)return;
     const scores=allWeeks.map(w=>getWeekScore(w));
     if(window._sparkChart){try{window._sparkChart.destroy();}catch(e){}}
     window._sparkChart=new window.Chart(document.getElementById('spark-chart'),{
@@ -810,6 +826,7 @@ function renderStats(){
         }
       }
     });
+  }
   }
 }
 
