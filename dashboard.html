@@ -166,6 +166,10 @@
           <span id="header-week-dates">— —</span>
         </div>
       </div>
+      <div id="sunday-only-banner" style="display:none;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.2);border-radius:6px;padding:10px 16px;margin-bottom:16px;align-items:center;justify-content:space-between;font-size:12px;color:#fb923c;">
+        <span>Reviewing week: <span id="header-week-dates-inline"></span></span>
+        <span style="font-size:11px;">Submit opens on Sunday</span>
+      </div>
       <div id="draft-banner" style="display:none;" class="draft-banner">
         <span>Draft saved — <span class="draft-time" id="draft-time"></span></span>
         <span style="font-size:11px;color:var(--text3);">Come back anytime to continue</span>
@@ -182,7 +186,7 @@
         </div>
       </div>
       <div class="btn-group" id="checkin-btns" style="display:none;">
-        <button class="btn btn-primary" onclick="submitCheckin()">Submit & Sync to Sheets</button>
+        <button class="btn btn-primary" id="submit-btn" onclick="submitCheckin()">Submit Week</button>
         <button class="btn btn-draft" onclick="saveDraft()">Save Draft</button>
       </div>
     </div>
@@ -266,7 +270,7 @@ let goals=null;
 let weekLog={};
 let draftLog={};
 
-const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const PILLAR_COLORS={Deen:'#2dd4bf',Fitness:'#f87171',Knowledge:'#a78bfa',Professional:'#60a5fa',Wealth:'#fbbf24'};
 
 // Monthly-only goals — locked until last week of month
@@ -326,29 +330,64 @@ function loadDraft(){
       document.getElementById('draft-time').textContent=new Date(d.savedAt).toLocaleString();}}
 }
 
-// Week starts Sunday
-function getCurrentWeekNumber(){
+// Week = Mon-Sun. On Sunday, review the week that just ended.
+function isSunday(){ return new Date().getDay()===0; }
+
+function getReviewWeekStart(){
+  // The week being reviewed: always the Mon-Sun that ended on the most recent Sunday
   const now=new Date();
-  const soy=new Date(now.getFullYear(),0,1);
-  const day=Math.floor((now-soy)/86400000);
-  return Math.ceil((day+soy.getDay()+1)/7);
+  const day=now.getDay(); // 0=Sun,1=Mon...6=Sat
+  // Last Sunday (today if Sunday, else previous Sunday)
+  const lastSun=new Date(now);
+  lastSun.setDate(now.getDate()-day);
+  lastSun.setHours(0,0,0,0);
+  // Monday of that week
+  const mon=new Date(lastSun);
+  mon.setDate(lastSun.getDate()-6);
+  return mon;
 }
-function getWeekStart(){
-  const now=new Date();const sun=new Date(now);
-  sun.setDate(now.getDate()-now.getDay());sun.setHours(0,0,0,0);return sun;
+function getReviewWeekEnd(){
+  // Sunday of the review week
+  const now=new Date();
+  const day=now.getDay();
+  const lastSun=new Date(now);
+  lastSun.setDate(now.getDate()-day);
+  lastSun.setHours(23,59,59);
+  return lastSun;
 }
-function getWeekEnd(){const s=getWeekStart();const e=new Date(s);e.setDate(s.getDate()+6);return e;}
+function getCurrentWeekNumber(){
+  // ISO week number based on Mon-Sun weeks
+  const d=getReviewWeekStart();
+  const soy=new Date(d.getFullYear(),0,1);
+  const day=Math.floor((d-soy)/86400000);
+  return Math.ceil((day+((soy.getDay()||7))+1)/7);
+}
 function fmtDate(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function isLastWeekOfMonth(){
-  const now=new Date();const nw=new Date(now);nw.setDate(now.getDate()+7);
-  return nw.getMonth()!==now.getMonth();
+  const we=getReviewWeekEnd();const nw=new Date(we);nw.setDate(we.getDate()+7);
+  return nw.getMonth()!==we.getMonth();
 }
 function updateWeekDisplay(){
-  const wn=getCurrentWeekNumber();const ws=getWeekStart(),we=getWeekEnd();
+  const wn=getCurrentWeekNumber();
+  const ws=getReviewWeekStart(),we=getReviewWeekEnd();
+  const sunday=isSunday();
   document.getElementById('header-week-num').textContent='Week '+wn;
   document.getElementById('header-week-dates').textContent=fmtDate(ws)+' – '+fmtDate(we);
   document.getElementById('sidebar-week').textContent='Week '+wn;
   document.getElementById('report-week-num').textContent='Week '+wn;
+  const inlineDates=document.getElementById('header-week-dates-inline');
+  if(inlineDates)inlineDates.textContent=fmtDate(ws)+' – '+fmtDate(we);
+  // Show Sunday-only warning if not Sunday
+  const banner=document.getElementById('sunday-only-banner');
+  if(banner) banner.style.display=sunday?'none':'flex';
+  // Disable submit button if not Sunday
+  const submitBtn=document.getElementById('submit-btn');
+  if(submitBtn){
+    submitBtn.disabled=!sunday;
+    submitBtn.style.opacity=sunday?'1':'0.4';
+    submitBtn.style.cursor=sunday?'pointer':'not-allowed';
+    submitBtn.title=sunday?'':'Check-in submission opens on Sundays';
+  }
 }
 
 function renderCheckin(){
