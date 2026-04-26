@@ -288,7 +288,9 @@ function showPage(name){
     if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes(name))b.classList.add('active');
   });
   if(name==='stats')renderStats();
-  if(name==='history')renderHistory();
+  if(name==='history'){
+    loadHistoryFromSheets().then(()=>renderHistory());
+  }
 }
 
 function loadLocalConfig(){
@@ -639,7 +641,7 @@ function renderStats(){
   const lastMonthName=monthNames[(currentMonth+11)%12];
   const PCOLORS={Deen:'#2dd4bf',Fitness:'#f87171',Knowledge:'#a78bfa',Professional:'#60a5fa',Wealth:'#fbbf24'};
 
-  const allWeeks=[...new Set(Object.keys(allLog).map(k=>parseInt(k.split('_')[0])))].sort((a,b)=>a-b);
+  const allWeeks=[...new Set(Object.keys(allLog).map(k=>k.substring(0,10)).filter(k=>k.length===10))].sort();
   const latestWeek=allWeeks[allWeeks.length-1]||wn;
   const prevWeek=allWeeks.length>=2?allWeeks[allWeeks.length-2]:null;
 
@@ -651,7 +653,7 @@ function renderStats(){
   }
   function getMonthWeeks(offset){
     const td=new Date(currentYear,currentMonth+offset,1);const tm=td.getMonth();const ty=td.getFullYear();
-    return allWeeks.filter(w=>{const wd=new Date(ty,0,1+(w-1)*7);return wd.getMonth()===tm&&wd.getFullYear()===ty;});
+    return allWeeks.filter(w=>{const wd=new Date(w+'T00:00:00');return wd.getMonth()===tm&&wd.getFullYear()===ty;});
   }
   function getPillarMonthAvg(pillar,offset){
     const weeks=getMonthWeeks(offset);if(!weeks.length)return 0;
@@ -670,12 +672,12 @@ function renderStats(){
     <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#8a8880;margin-bottom:14px;">Week on week</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
       <div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;">
-        <div style="font-size:10px;color:#8a8880;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">Week ${latestWeek}</div>
+        <div style="font-size:10px;color:#8a8880;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">${latestWeek}</div>
         <div style="font-size:32px;font-family:'Cormorant Garamond',serif;font-weight:600;color:#c9a84c;">${thisWeekScore}</div>
         <div style="font-size:11px;color:#504e4a;">/ 100</div>
       </div>
       <div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;">
-        <div style="font-size:10px;color:#8a8880;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">${prevWeek?'Week '+prevWeek:'Previous'}</div>
+        <div style="font-size:10px;color:#8a8880;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">${prevWeek?prevWeek:'Previous'}</div>
         <div style="font-size:32px;font-family:'Cormorant Garamond',serif;font-weight:600;color:#8a8880;">${lastWeekScore!==null?lastWeekScore:'—'}</div>
         <div style="font-size:11px;color:#504e4a;">/ 100</div>
       </div>
@@ -785,8 +787,8 @@ function renderStats(){
       <div style="background:#13131a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;">
         <div style="position:relative;height:120px;"><canvas id="spark-chart" role="img" aria-label="Weekly score trend">${scores.join(', ')}</canvas></div>
         <div style="display:flex;justify-content:space-between;margin-top:6px;">
-          <span style="font-size:10px;color:#504e4a;">Wk ${allWeeks[0]}</span>
-          <span style="font-size:10px;color:#504e4a;">Wk ${allWeeks[allWeeks.length-1]}</span>
+          <span style="font-size:10px;color:#504e4a;">${allWeeks[0]}</span>
+          <span style="font-size:10px;color:#504e4a;">${allWeeks[allWeeks.length-1]}</span>
         </div>
       </div>
     </div>`;
@@ -809,7 +811,7 @@ function renderStats(){
     window._sparkChart=new window.Chart(document.getElementById('spark-chart'),{
       type:'line',
       data:{
-        labels:allWeeks.map(w=>'W'+w),
+        labels:allWeeks,
         datasets:[{
           data:scores,borderColor:'#c9a84c',backgroundColor:'rgba(201,168,76,0.08)',
           borderWidth:2,tension:0.35,fill:true,
@@ -829,22 +831,64 @@ function renderStats(){
   }
 }
 
+async function loadHistoryFromSheets(){
+  // Google Sheets is the source of truth for submitted history.
+  // LocalStorage remains only as a fallback/cache.
+  if(!config.apiUrl){
+    return false;
+  }
+
+  try{
+    const res=await fetch(config.apiUrl+'?action=getLog');
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+
+    const syncedLog={};
+    (data.entries||[]).forEach(e=>{
+      const weekStart=String(e.week_start||'').substring(0,10);
+      const goalId=e.goal_id;
+      if(!weekStart||!goalId)return;
+      syncedLog[weekStart+'_'+goalId]={
+        goal_id:goalId,
+        target:Number(e.target)||0,
+        actual:Number(e.actual)||0,
+        score:Number(e.score)||0
+      };
+    });
+
+    weekLog=syncedLog;
+    localStorage.setItem(LOG_KEY,JSON.stringify(weekLog));
+    return true;
+  }catch(e){
+    toast('Could not load Sheets history: '+e.message,'error');
+    return false;
+  }
+}
+
 function renderHistory(){
   const weeks={};
   Object.entries({...weekLog,...draftLog}).forEach(([k,v])=>{
-    const wn=k.split('_')[0];if(!weeks[wn])weeks[wn]={score:0,entries:0};
-    weeks[wn].score+=v.score||0;weeks[wn].entries++;
+    const weekStart=k.substring(0,10);
+    if(!weekStart||weekStart.length<10)return;
+    if(!weeks[weekStart])weeks[weekStart]={score:0,entries:0};
+    weeks[weekStart].score+=Number(v.score)||0;
+    weeks[weekStart].entries++;
   });
-  const sorted=Object.keys(weeks).sort((a,b)=>b-a);if(!sorted.length)return;
-  let html='<table class="history-table"><thead><tr><th>Week</th><th>Score</th><th>Goals logged</th><th>Status</th></tr></thead><tbody>';
-  sorted.forEach(wn=>{
-    const s=Math.round(weeks[wn].score);
+  const sorted=Object.keys(weeks).sort((a,b)=>b.localeCompare(a));
+  if(!sorted.length){
+    document.getElementById('history-content').innerHTML='<div class="empty-state"><h3>No history yet</h3><p>No submitted weeks found in Google Sheets yet.</p></div>';
+    return;
+  }
+  let html='<table class="history-table"><thead><tr><th>Week Start</th><th>Score</th><th>Goals logged</th><th>Status</th></tr></thead><tbody>';
+  sorted.forEach(weekStart=>{
+    const s=Math.round(weeks[weekStart].score);
     const cls=s>=80?'score-high':s>=55?'score-mid':'score-low';
-    html+=`<tr><td>Week ${wn}</td><td><span class="score-pill ${cls}">${s}/100</span></td><td style="color:var(--text3);">${weeks[wn].entries}</td><td style="color:var(--text3);">${s>=80?'Strong':s>=55?'Average':'Below standard'}</td></tr>`;
+    html+=`<tr><td>${weekStart}</td><td><span class="score-pill ${cls}">${s}/100</span></td><td style="color:var(--text3);">${weeks[weekStart].entries}</td><td style="color:var(--text3);">${s>=80?'Strong':s>=55?'Average':'Below standard'}</td></tr>`;
   });
   html+='</tbody></table>';
   document.getElementById('history-content').innerHTML=html;
 }
+
 
 async function uploadGoals(){
   const raw=document.getElementById('goals-json-input').value.trim();
