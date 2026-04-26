@@ -175,8 +175,8 @@
         <span style="font-size:11px;color:var(--text3);">Come back anytime to continue</span>
       </div>
       <div id="month-end-banner" style="display:none;" class="month-end-banner">
-        <strong>📅 End of month — monthly goals unlocked</strong>
-        Check your savings, personal spend, and Talal outputs before submitting.
+        <strong>📅 First week of the month — wealth goals unlocked</strong>
+        First week of the month — close your books, calculate savings, and log wealth goals.
       </div>
       <div id="checkin-content">
         <div class="empty-state">
@@ -365,10 +365,18 @@ function getCurrentWeekNumber(){
   return Math.ceil((dayOfYear+1)/7);
 }
 function fmtDate(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
-function isLastWeekOfMonth(){
-  const we=getReviewWeekEnd();const nw=new Date(we);nw.setDate(we.getDate()+7);
-  return nw.getMonth()!==we.getMonth();
+function isFirstWeekOfMonth(){
+  // True if the review week (Mon-Sun) contains the 1st of any month
+  const ws=getReviewWeekStart();
+  const we=getReviewWeekEnd();
+  const d=new Date(ws);
+  while(d<=we){
+    if(d.getDate()===1)return true;
+    d.setDate(d.getDate()+1);
+  }
+  return false;
 }
+function isLastWeekOfMonth(){ return isFirstWeekOfMonth(); }
 function updateWeekDisplay(){
   const wn=getCurrentWeekNumber();
   const ws=getReviewWeekStart(),we=getReviewWeekEnd();
